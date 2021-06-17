@@ -20,7 +20,7 @@ Rust具有安全高效等语言特性，提供了3个工具：
 - rustfmt: 代码风格
 - Rust Language Server
 
-## 第一份程序
+## hello, world
 
 ``` rust
 // main.rs
@@ -87,3 +87,175 @@ Cargo 是 Rust 语言系统中的依赖管理和构建工具。利用cargo创建
 
 实践永远是学习新东西最快的方法。下面使用熟知的猜数游戏学习一些新的语言规则。
 
+首先，使用在上一章 hello world 程序的基础上，引入了一些新的知识点：
+
+``` rust
+// main.rs
+use std::io;
+
+fn main() {
+    println!("Guess the number!");
+    println!("Please input your guess.");
+
+    let mut guess = String::new();
+    io::stdin()
+        .read_line(&mut guess)
+        .expect("Failed to read line");
+    println!("Your guessd is: {}", guess);
+}
+```
+
+默认情况下 rust 只引入了少量的类型，为了获取用户的输入输出，需要使用 use 引入 std::io 到作用域中，std 表示 io 是标准库的一部分。
+
+rust 使用 let 关键字创建变量和常量，默认情况下变量是不可变的，若需要可变的变量需要显示用 mut 关键字指出。
+
+``` rust
+let foo = bar;     // immutable
+let mut foo = bar; // mutable
+```
+
+let mut guess = String::new() 语句中，guess 变量绑定到 String::new() 的返回结果，String 是标准库提供的可变的、utf-8 格式的字符串类型，"::" 表示 new 是 String 的一个关联函数，其无需实例化即可调用，类似其他语言的静态函数。new() 方法将创建一个新的 String 空实例。
+
+为了和用户交互，使用了 std::io，io::stdin(&mut guess) 将返回 std::io::Stdin，即标准I/O的一个句柄，read_line 函数将从终端获取用户输入，并**追加**到 guess 字符串变量后，因此，guess必须是一个可变对象。"&" 表示使用了对象的引用，使用引用以避免对变量的重复拷贝。默认情况下，引用和变量相同，均为不可变，因此需要使用 "&mut guess" 而非 "&guess"。
+
+'.expect("...")' 对函数返回结果的潜在风险进行处理。read_line 函数读取用户输入，并返回一个 io::Result 类型的数据。Result 类型广泛存在于多种模块中，其实质是一个枚举类型，其值包括 Err、Ok，若得到的返回值为 Err，则将导致程序 crash 并使用expect提供的信息，若得到 Ok，则返回其携带的数值。若为使用 expect 函数，在编译过程中，rust 将给出警告。
+
+rust 使用 "{}" 作为程序格式化输出的占位符：
+
+``` rust
+let x = 5;
+let y = 6;
+println!("x={}, y={}", x, y);
+```
+
+其次，为了完成猜数游戏，需要学习如果获得随机数。rust 的标准库中并不提供随机数的支持，不过其拥有丰富的 crates 作为语言的扩展支持，修改 Cargo.toml 引入 rand 模块的依赖
+
+```
+[dependencies]
+rand = "0.8.3"
+```
+
+cargo 在执行 build 时将自动构建对应的依赖关系，包括 rand 模块本身的依赖内容。其版本号符合 SemVer 标准，表明项目依赖的 rand 模块需要在 0.8.3 到 0.9.0 之间，高于或等于 0.9.0 则无法保证 api 的一致性。cargo build 将只对程序修改内容进行编译，引入的 crates 只会编译一次。Cargo.lock 指明了依赖项目的版本，从而保证任何时间、任何人都可以成功编译这份项目。在 crates 有可升级的版本时，请在项目根目录下执行 cargo update。若需要大版本的更新，请修改 Cargo.toml 文件。
+
+下面使用 rand 生成 1 到 100 的随机数：
+
+``` rust
+use rand::Rng;
+
+fn main() {
+    let secret_number = rand::thread_rng().gen_range(1..101);
+}
+```
+
+Rng trait 中定义了很多关于随机数生成方法的接口，为了使用这些方法，首先使用 use 引入。rand::thread_rng 提供了随机数生成器：在当前线程并使用系统种子运行。利用 gen_range 生成 1 到 100 之间的随机数，范围左闭右开，当然，也可 "1..=100"。
+
+当使用一个新的 crate 时，可以在项目目录中使用命令 cargo doc --open 查看所有模块的文档。
+
+接下来，需要对用户输入和随机数字进行比较：
+
+``` rust
+use std::cmp::Ordering;
+
+fn main() {
+    let guess = 2;
+    let secret_number = 3;
+    match guess.cmp(&secret_number) {
+        Ordering::Less => println!("Too small!"),
+        Ordering::Greater => println!("Too big!"),
+        Ordering::Equal => {
+            println!("You win!")
+            // more
+        },
+    }
+}
+
+```
+
+为了进行结果的比较，需要引入 Ordering，类似于 Result，其亦为枚举类型，不过其包含 Greater、Less、Equal 三个元素。使用变量的内联方法 cmp 对两个数值结果进行比较，其将返回一个 Ordering 类型的结果，使用 match 对该结果进行分支比较，其依次比较 3 种 Ordering 的可能值，当匹配成功则执行 => 后的语句，可以使用 "{}" 执行多条语句。
+
+不过 cmp 函数需要比较相同的类型，如整数和 string 执行 cmp，只能得到无法通过编译的结果。rust 内置了一些基本的类型，比如数字的 i32，u32，i64，u64 等，分别表示有符号和无符号的 32 位和 64 位整形数据，在定义变量时可明确指出：
+
+``` rust
+{
+    let secret_number = 3;
+    let mut guess = String::new();
+    let guess: u32 = guess.trim().parse().expect("Please input number!");
+    // get input from terminal here
+    match guess.cmp(secret_number) {
+        // arms here
+    }
+}
+```
+
+在 rust 中，可以重复定义一个变量，这在将一个数据类型转换为其他数据类型的情况下很有用，无需定义两个不同类型的相同变量。trim 函数将去除字符串前后的空白字符，parse 函数则解析字符串并转换为数字，定义变量时通过 ": u32" 指明 guess 为无符号32位整型数据，因此，rust 在执行 cmp 时，即可隐式推断 secret_number 为一个 u32 类型数据。
+
+rust 可以使用 loop 进行循环
+
+``` rust
+fn main() {
+    loop {
+        // loop body
+    }
+}
+```
+最后，可以为标准 io 提供更健壮的错误处理方式:
+
+``` rust
+fn main() {
+    loop {
+        // ...
+        io::stdin()
+            .read_line(&mut guess)
+            .expect("Failed to read line");
+
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
+        // ...
+    }
+}
+```
+
+完整程序如下：
+
+``` rust
+use std::io;
+use std::cmp::Ordering;
+use rand::Rng;
+
+fn main() {
+    println!("Guess the number!");
+
+    let secret_number = rand::thread_rng().gen_range(1..=100);
+
+    loop {
+        println!("Please input your guess.");
+        let mut guess = String::new();
+
+        io::stdin()
+            .read_line(&mut guess)
+            .expect("Failed to read line");
+
+        // let guess: u32 = guess.trim().parse()
+        //                        .expect("Please input a number!");
+
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
+
+        println!("Your guessd is: {}", guess);
+
+        match guess.cmp(&secret_number) {
+            Ordering::Less => println!("Too small!"),
+            Ordering::Greater => println!("Too Big!"),
+            Ordering::Equal => { 
+                println!("You win!");
+                break;
+            },
+        }
+    }
+}
+
+```
