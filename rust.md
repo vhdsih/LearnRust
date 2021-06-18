@@ -20,7 +20,9 @@ Rust具有安全高效等语言特性，提供了3个工具：
 - rustfmt: 代码风格
 - Rust Language Server
 
-## hello, world
+## 一、开始学习rust
+
+### hello, world
 
 ``` rust
 // main.rs
@@ -45,7 +47,7 @@ fn main() {
 
 然而对于复杂的工程，使用 cargo 来管理项目则是更好的选择。
 
-## Cargo
+### 使用 Cargo
 
 Cargo 是 Rust 语言系统中的依赖管理和构建工具。利用cargo创建新的项目，并创建所需的文件项，同时在非 git 仓库中将同时初始化 git 并添加 gitignore 文件。
 
@@ -57,6 +59,7 @@ Cargo 是 Rust 语言系统中的依赖管理和构建工具。利用cargo创建
     |- main.rs
 
 ```
+
 在 Cargo.toml 文件中记录了项目相关信息和依赖项目，文件为TOML (Tom’s Obvious, Minimal Language) 格式。Cargo 设计希望将源码放到 src目录中，顶层目录放置 README、LICENSE 等。
 
 构建和运行使用 Cargo 创建的项目很简单，在第一次构建完成后，在顶层目录将创建一个 Cargo.lock 文件用以记录依赖，无需手工管理。
@@ -83,7 +86,7 @@ Cargo 是 Rust 语言系统中的依赖管理和构建工具。利用cargo创建
 > cargo build --release
 ```
 
-## 猜数程序
+## 二、猜数程序实践
 
 实践永远是学习新东西最快的方法。下面使用熟知的猜数游戏学习一些新的语言规则。
 
@@ -260,5 +263,85 @@ fn main() {
         }
     }
 }
-
 ```
+
+## 三、语言基础
+
+在这一部分，主要学习 rust 语言的基础知识，如变量、数据类型、函数、注释以及控制流。
+
+学习之前，请首先[了解 rust 保留的关键字](https://doc.rust-lang.org/book/appendix-01-keywords.html)，在后续程序的编写过程中以避免使用这些关键字来定义自己的名称。
+
+### 变量及其可变性
+
+正如第二章提到的，默认情况下，rust 定义的变量都是不可变的，这与其他语言有所区别，也同样因此使 rust 更具安全性和并发性。当然，也可以根据需要，令定义的变量可变。
+
+如之前所提到的，rust 使用 let 来定义一个变量，如果该变量是不可变的，一旦这个变量绑定到某个值后，其值将不能被改变，当尝试编译如下的程序时，将会失败，并给出 " cannot assign twice to immutable variable" 的警告。
+
+``` rust
+fn main() {
+    let x = 5;
+    println!("x is {}", x);
+    x = 6;
+    println!("x is {}", x);
+}
+```
+
+rust 保证了声明为不可变的变量一旦绑定了数值后将永远不再改变，对于这种变量，无需考虑其在何时、何处以及怎样发生改变。
+
+如果需要可变的变量，需要使用 mut 关键字显式声明，只需将 mut 放在变量名前即可。此时我们修改上述程序即可正常编译并运行，因为我们操纵的是一个可变的变量。使用变量的可变性是对错误和效率等问题的权衡和折中，不可变行提供了更高的安全性，而可变变量则可能避免了新变量的反复创建和拷贝等。
+
+``` rust
+fn main() {
+    // let x = 5;
+    let mut x = 5;
+    println!("x is {}", x);
+    x = 6;
+    println!("x is {}", x);
+}
+```
+
+在其他语言中，有常量（constant）的概念，类似于 rust 的不可变变量，但是 rust 的常量和变量存在一些区别：
+
+- 不允许将 mut 和常量一起使用，因为常量是永远的恒值，而非默认为恒值；
+- 当使用 const 而不是 let 来声明一个常量时，必须指明数据类型；
+- const 可以声明在任意作用域中，包括全局作用，而 let 无法声明在全局作用域中；
+- 常量的值只能是常量表达式，不能是任意一个运行时获取的值。
+
+下面声明了两个常量，rust 建议使用大写作为常量的名称，否则将在编译器给出警告。
+
+``` rust
+const MAX: u32 = 123;
+fn main() {
+    let x = 5;
+    const MIN: u32 = 123;
+    println!("x is {}, MAX is {}, MIN is {}", x, MAX, MIN);
+}
+```
+
+除变量不可变的特性外，变量与其他语言仍有一个明显的特点：rust 支持对已定义的变量进行覆盖（常量不具有这样的特性，rust 将其称为 Shadowing），即在已定义的变量后，可以重新定义一个同名的变量来覆盖，如下面给出的程序，最后 x 的值为 7。
+
+``` rust
+fn main() {
+    let x = 5;
+    let x = x + 1;
+    let x = x + 1;
+    println!("x is {}", x);
+}
+```
+
+Shadowing 和 mut 是不同的，若没有 let 关键字，这种 "x = x + 1" 对变量的操作是不允许的，通过Shadowing 可以对已有变量进行一些转换并得到新的不可变变量。
+
+除了上述特性外，Shadowing 也可以实现不同类型的转换，这和 mut 是不同的：
+
+``` rust
+let spaces = "  ";        // String
+let spaces = space.len(); // integer
+```
+
+如果使用 mut 来定义 spaces，则无法通过编译，即我们不能改变 mut 变量名的类型。
+
+### 数据类型
+
+### 程序注释
+
+### 控制流
