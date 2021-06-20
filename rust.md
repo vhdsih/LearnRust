@@ -12,7 +12,6 @@ toc: true
 闲着没事干，学学 rust，另外计划用 rust 写写算法~，此篇笔记为阅读  [rust online book](https://doc.rust-lang.org/book/) 时记录的，希望能坚持看完，在此给予自己最大的鼓励！
 
 <!-- more -->
-# Learning Rust
 
 Rust具有安全高效等语言特性，提供了3个工具：
 
@@ -20,9 +19,9 @@ Rust具有安全高效等语言特性，提供了3个工具：
 - rustfmt: 代码风格
 - Rust Language Server
 
-## 一、开始学习rust
+# 一、开始学习rust
 
-### hello, world
+## hello, world
 
 ``` rust
 // main.rs
@@ -47,7 +46,7 @@ fn main() {
 
 然而对于复杂的工程，使用 cargo 来管理项目则是更好的选择。
 
-### 使用 Cargo
+## 使用 Cargo
 
 Cargo 是 Rust 语言系统中的依赖管理和构建工具。利用cargo创建新的项目，并创建所需的文件项，同时在非 git 仓库中将同时初始化 git 并添加 gitignore 文件。
 
@@ -86,7 +85,7 @@ Cargo 是 Rust 语言系统中的依赖管理和构建工具。利用cargo创建
 > cargo build --release
 ```
 
-## 二、猜数程序实践
+# 二、猜数程序实践
 
 实践永远是学习新东西最快的方法。下面使用熟知的猜数游戏学习一些新的语言规则。
 
@@ -265,13 +264,13 @@ fn main() {
 }
 ```
 
-## 三、语言基础
+# 三、语言基础
 
 在这一部分，主要学习 rust 语言的基础知识，如变量、数据类型、函数、注释以及控制流。
 
 学习之前，请首先[了解 rust 保留的关键字](https://doc.rust-lang.org/book/appendix-01-keywords.html)，在后续程序的编写过程中以避免使用这些关键字来定义自己的名称。
 
-### 变量及其可变性
+## 变量及其可变性
 
 正如第二章提到的，默认情况下，rust 定义的变量都是不可变的，这与其他语言有所区别，也同样因此使 rust 更具安全性和并发性。当然，也可以根据需要，令定义的变量可变。
 
@@ -340,8 +339,219 @@ let spaces = space.len(); // integer
 
 如果使用 mut 来定义 spaces，则无法通过编译，即我们不能改变 mut 变量名的类型。
 
-### 数据类型
+## 基本数据类型
 
-### 程序注释
+rust 是静态类型语言，在编译期必须明确各个变量的数据类型。数据类型可以在代码中明确指定，除此外，也可以通过上下文推断。如猜数游戏中，定义 guess 必须指定其类型为 "u32"，否则，parse 函数通过编译。
 
-### 控制流
+``` rust
+let guess: u32 = "42".parse().expect("Not a number!");
+```
+
+下面介绍 rust 数据类型的两个子集：标量类型和复合类型。
+
+### 标量类型
+
+rust 中的标量类型，即在其他语言中常见的如整型、浮点类型、布尔类型和字符类型。
+
+#### 整型
+
+在 rust 表示整形的方法为 "u/i位长度"，u 表示无符号数，i表示有符号整数，包括：
+
+| 长度 | 有符号 | 无符号 |
+| :-----: | :----: | :----: |
+| 8-bits | i8 | u8 |
+| 16-bits | i16 | u16 |
+| 32-bits | i32 | u32 |
+| 64-bits | i64 | u64 |
+| 128-bits | i128 | u128 |
+| arch | isize | usize |
+
+可以使用 "i/usize" 使用操作系统支持的整形长度，在对集合进行索引时常常使用到这种类型。此外，rust 支持多种进制的字面值表示：
+
+| 字面值类型 | 表示 |
+| :-----: | :----: |
+| 10进制 | 123_456_789 |
+| 16进制 | 0xABCD |
+| 8进制 | 0o77 |
+| 2进制 | 0b1111_0000 |
+| 字符(u8) | b'A'
+
+
+#### 浮点类型
+
+rust 使用 f32 和 f64 分别表示 32 位浮点数和 64 位浮点数，rust 默认使用 64 位浮点数。
+
+``` rust
+fn main() {
+    let a = 1.0;        // f64
+    let x: f32 = 1.2;   // f32
+    let y: f64 = 2.2;   // f64
+}
+```
+
+#### 数值操作
+
+同样，rust 为数值类型提供了加减乘除的操作符，其计算结果绑定到一个变量上：
+
+``` rust
+fn main() {
+    let sum = 1 + 2;
+    let dif = 2 - 1;
+    let mul = 1 * 2;
+    let div = 2 / 1;
+    let m   = 2 % 1;
+}
+```
+
+#### 布尔类型
+
+rust 使用 true、false 作为布尔值 bool 的字面值：
+
+``` rust
+fn main() {
+    let t = true;
+    let f: bool = false; // with explicit type annotation
+}
+```
+
+#### 字符类型
+
+rust 的 char 类型为 4 字节的长度的 unicode 支持的常量值，能够表示包括中文、日文等多种字符。使用单引号表示：
+
+``` rust
+fn main() {
+    let c = 'z';
+    let z = 'ℤ';
+    let heart_eyed_cat = '😻';
+}
+```
+
+### 复合类型
+
+rust 的复合类型可以将多个数值集合到一个数据类型中来表示，主要有两种：元组（tuples）和数组（arrays）。
+
+#### 元组
+
+元组是一种将多种不同类型数据集合到一起的常用的方法，其一旦创建，长度固定不可修改，元组使用圆括号表示：
+
+``` rust
+fn main() {
+    let tup: (i32, f64, u8) = (500, 6.4, 1);
+}
+```
+
+使用元组，有方便的方法对其中的每个元素解包：
+
+``` rust
+fn main() {
+    let tup = (500, 6.4, 1);
+
+    let (x, y, z) = tup;
+
+    println!("The value of y is: {}", y);
+}
+```
+
+除此之外，可以通过元组索引来访问其中任意元素，使用 "tuple.index" 实现，其索引范围从 0 开始：
+
+``` rust
+fn main() {
+    let x: (i32, f64, u8) = (500, 6.4, 1);
+
+    let five_hundred = x.0;
+
+    let six_point_four = x.1;
+
+    let one = x.2;
+}
+```
+
+#### 数组
+
+数组中的每一个元素的数据类型必须相同，其长度是固定的，使用方括号表示：
+
+``` rust
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+}
+```
+
+当所需数据集合为相同类型且希望将数据分配在堆上而不是栈上或始终需要固定数量的数据时，使用数据可能是一个选择，不过，其不如 vector （标准库提供，后续介绍）灵活，后者可动态扩容。若无法明确使用数组或 vector，请使用 vector。
+
+如，程序需要固定的一些信息，使用 array：
+
+``` rust
+fn main() {
+    let months = ["January", "February", "March", "April", "May", "June", "July",
+                "August", "September", "October", "November", "December"];
+}
+```
+
+声明数组时，也可指明元素类型和长度：
+
+``` rust
+let a: [i32; 5] = [1, 2, 3, 4, 5];
+```
+
+可以创建一个有相同元素的数组：
+
+``` rust
+let a = [3; 5];
+```
+
+a 的值为 [3, 3, 3, 3, 3]。
+
+数组的元素值可以使用索引访问：
+
+``` rust
+let a = [1, 2, 3, 4, 5];
+let first = a[0];
+let end   = a[4];
+```
+
+在程序中，如果潜在索引越界，程序是可以编译成功的，但当运行时遇到越界问题，将导致程序运行失败。在其他语言中，当遇到越界问题时，程序会继续运行，而 rust 将阻止这种情况的发生，通过立即退出来阻止对非法内存的访问，这里利用所学的语言特性提供了例子
+
+``` rust
+use std::io;
+
+fn main() {
+    let a = [1, 2, 3, 4, 5];
+
+    println!("input index:");
+
+    let mut index = String::new();
+
+    io::stdin()
+        .read_line(&mut index)
+        .expect("Faile to read line");
+
+    let index : usize = index.trim().parse().expect("Index not a number"); 
+
+    let element = a[index];
+
+    println!("value is {}, index is {}", element, index);
+}
+```
+
+## 函数
+
+rust 使用 fn 关键字来定义函数，如所见的 main 函数，我们同样可以定义其他函数，包括无参数函数、有参数函数等，函数参数必须指明数据类型，当然各个参数可以有各自的类型。
+
+``` rust
+fn main() {
+    test();
+    test_args(x: i32, y: i32);
+}
+
+fn test() {
+    println!("This is test fn");
+}
+
+fn test_args(x: i32, y: i32) {
+    println!("The arg is x:{}, y:{}", x, y);
+}
+```
+
+## 程序注释
+
+## 控制流
