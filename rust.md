@@ -1682,7 +1682,7 @@ fn main() {
 
 本章将主要内容：
 
-- Packages：源于 Cargo 的功能，帮助我们构建、测试和分享我们创建的 crates；
+- Packages：Cargo 提供的功能，帮助我们构建、测试和分享创建的 crates；
 - Crates：模块树用以生成库或可执行文件（ A tree of modules that produces a library or executable）；
 - Modules and use: Let you control the organization, scope, and privacy of paths；
 - Paths：命名项目的方式（如 struct、函数、module等）。
@@ -1765,5 +1765,128 @@ mod front_of_house {
 
 使用 mod 关键字定义 module，而且在一个 module 中可以定义其他 module，此外，module 中还可以定义 struct，enum，constants，traits，函数等。
 
+src/msin.rs 和 src/lib.rs 是 crate root，其内的 module 组成了 module tree 的根部，如上所示的 modules，其组成如下：
 
-# Waiting for update later
+``` shell
+crate
+ └── front_of_house
+     ├── hosting
+     │   ├── add_to_waitlist
+     │   └── seat_at_table
+     └── serving
+         ├── take_order
+         ├── serve_order
+         └── take_payment
+```
+
+为了使用在 module tree 中的某个 module，该如何进行引用？
+
+## Paths for Referring to an Item in the Module Tree
+
+类似于文件系统，rust 提供的 module 系统也提供了两种引用方式：
+
+- 从 crate root 开始的绝对引用：使用crate 的名字或者 crate 关键字；
+- 从当前 module 的相对引用，使用 self、super 或者当前模块的 id。
+
+模块的路径使用 "::" 进行连接，下面，简单地使用这两种方法来进行模块方法的调用：
+
+``` rust
+mod front_of_house {
+    mod hosting {
+        fn add_to_waitlist() {}
+    }
+}
+pub fn eat_at_restaurant() {
+    // Absolute path
+    crate::front_of_house::hosting::add_to_waitlist();
+    // Relative path
+    front_of_house::hosting::add_to_waitlist();
+}
+```
+
+此处，eat_at_restaurant 作为 module 的公共 api 暴露给使用者，故使用 pub 标记，后面将详细介绍。注意两种路径引用的方法：当使用绝对路径引用时，由于 eat_at_restaurant 方法和 front_of_house 在相同的 crate 中，因此，绝对路径的根可以使用 crate 关键字，在 crate 关键字后，按序索引到目标函数；相对路径引用则以 module 名作为开始，直至索引到目标函数。
+
+二者的选择依据需求，但是绝对路径引用在移动代码后，不需要更改引用路径。
+
+在试图编译上述代码时，将无法通过编译，尽管引用路径是正确的，但是，还存在所有权问题。使用 module 可以实现对代码细节的封装，并决定某些 api 可以暴露给外面。rust 默认所有的 module、function、struct、enum 等，都是私有的，即不加指明，不能使用，此时，父模块不能直接使用子模块的内容，但是子模块可以使用父模块的内容，因为子模块的封装向其外部隐藏了实现的细节，而同时可以看到声明该子模块的上下文。
+
+为了给外部提供可用的接口，需要使用 pub 关键字指明其共有属性：
+
+``` rust
+mod front_of_house {
+    pub mod hosting {
+        pub fn add_to_waitlist() {}
+    }
+}
+```
+
+需要同时指明 hosting 和 add_to_waitlist 为 pub。仍需要注意的是，由于 front_of_house 和 eat_at_restaurant 定义在同一个 crate 下，因此，即使 front_of_house 没有 pub 标记，其仍然对 eat_at_restaurant 可见，但是对于此 module 包含的内容，需要明确权限决定是否暴露给外部使用。
+
+对于相对路径引用，还可以使用 super 关键字，类似于文件系统中的 ".."，其指向所在路径的上一级。例如：
+
+``` rust
+fn server_order() {}
+
+mod back_of_house {
+    fn fix_incorrect_order() {
+        cook_order();
+        super::server_order();
+    }
+
+    fn cook_order() {}
+}
+```
+
+函数 fix_incorrect_order 是 module back_of_house 的函数，因此，在该函数内部可以直接引用该 module 的函数 cook_order，同时，通过 super 关键字将路径指向所在 module 的父路径，从而获得函数 server_order。从这一点来讲，若能够从始至终保证 super 所引用的对象和发生的引用位置相对不变，可以使用 super。
+
+除此以外，在 module 中设计 struct、enum 等对象时，也需要有所有权的考虑。对于 struct，除了在类型关键字前使用 pub 表示该对象是可访问之外，其内部元素默认是私有的，除非使用 pub 来标识可访问：
+
+``` rust
+mod back_of_house {
+    pub struct Breakfast {
+        pub toast: String,
+        seasonal_fruit: String,
+    }
+
+    impl Breakfast {
+        pub fn summer(toast: &str) -> Breakfast {
+            Breakfast {
+                toast: String::from(toast),
+                seasonal_fruit: String::from("peaches"),
+            }
+        }
+    }
+}
+
+pub fn eat_at_restaurant() {
+    // Order a breakfast in the summer with Rye toast
+    let mut meal = back_of_house::Breakfast::summer("Rye");
+    // Change our mind about what bread we'd like
+    meal.toast = String::from("Wheat");
+    println!("I'd like {} toast please", meal.toast);
+
+    // The next line won't compile if we uncomment it; we're not allowed
+    // to see or modify the seasonal fruit that comes with the meal
+    // meal.seasonal_fruit = String::from("blueberries");
+}
+```
+
+对于 enum，只要在 关键字前标记 pub，则其内容均可访问，不过 enum 默认情况下也是可访问的，而非私有。
+
+``` rust
+mod back_of_house {
+    pub enum Appetizer {
+        Soup,
+        Salad,
+    }
+}
+
+pub fn eat_at_restaurant() {
+    let order1 = back_of_house::Appetizer::Soup;
+    let order2 = back_of_house::Appetizer::Salad;
+}
+```
+
+## 通过 use 将路径引入作用域
+
+ Waiting for update later
