@@ -1908,7 +1908,7 @@ pub fn eat_at_restaurant() {
 }
 ```
 
-通过 use，将 mod hosting 引入到 crate root，因此，hosting 将成为当前作用域的一个合法的名字。可以直接使用 hosting::xxxx 来引用对应的目标了。习惯上，对于 mod 中的函数，引入层级将到达其 mod 层，以明确该函数定义再其他模块中。use 可以使用相对路径或绝对路径。
+通过 use，将 mod hosting 引入到 crate root，因此，hosting 将成为当前作用域的一个合法的名字。可以直接使用 hosting::xxxx 来引用对应的目标了。习惯上，对于 mod 中的函数，引入层级将到达其 mod 层，以明确该函数定义在其他模块中。use 可以使用相对路径或绝对路径。
 
 除此以外，use 也为模块引入提供了别名功能：
 
@@ -2008,16 +2008,123 @@ pub fn add_to_waitlist() {}
 
 # 八、常见的集合
 
-rust 的标准库中提供了一些有用的数据结构（collections），相比于前几章学习过的整型、浮点型等数据类型，这些 collections 具备表示更多数据的能力，同时，和内建的数组、元组不同，这些 collections 构建在堆上，因此无需再编译期指明其容量，还能再运行时动态改变其容量。对于这些不同的数据结构，根据其原理不同，有这不同的使用代价。
+rust 的标准库中提供了一些有用的数据结构（collections），相比于前几章学习过的整型、浮点型等数据类型，这些 collections 具备表示更多数据的能力，同时，和内建的数组、元组不同，这些 collections 构建在堆上，因此无需在编译期指明其容量，还能在运行时动态改变其容量。对于这些不同的数据结构，根据其原理不同，有着不同的使用代价。
 
 本节讨论的内容如下：
 
 1. 使用 vector 在连续空间中存储数据；
 2. 使用 string 在连续空间中存储字符；
 3. 使用 hash map 存储 key、value 对。
+
 ## Vector
 
+Vector 用于存储相同类型的数据的集合，存储于内存的连续空间中。Vector 无需显式引入，在 rust 中使用 Vec\<T\> 表示：
+
+``` rust
+// 创建一个空的，容纳 i32 类型数据的 vector
+let v: Vec<i32> = Vec::new();
+```
+
+上述定义明确指明了 Vector 存储的数据类型为 i32，若定义时指明了其容纳的数据，rust 可以推断出其数据类型，当尝试创建有一些初始值的 vector 时，可以使用 rust 提供的宏 "vec!"，使用这个宏将创建一个复合所提供数据类型的 Vector：
+
+``` rust
+// 创建一个 Vec<i32>
+let u = vec![1, 2, 3];
+```
+
+可以使用 push 向 Vector 中添加元素：
+
+``` rust
+let mut v = Vec::new();
+v.push(1);
+v.push(2);
+v.push(3);
+```
+
+使用 pope 弹出 Vector 中的最后一个元素，注意可变性：
+
+``` rust
+let mut v = vec![1, 2, 3];
+v.pop();
+```
+
+需要注意的是，若需要改变 Vector，必须使用 mut 关键字指明其可变性！此外，创建可变 Vector 时，若没有指明其数据类型，则在 push 时推断，后续 push 的数据类型必须相同，且不存在隐式转换（如 float 转 int)
+
+类似于其他数据结构，当 Vector 离开其作用域，将被丢弃销毁，其容纳的数据同样被销毁：
+
+``` rust
+{
+    let v = vec![1, 2, 3, 4];
+    // do stuff with v
+} // <- v goes out of scope and is freed here
+```
+
+对于读取或引用 Vector 中的数据，有两种方法，其一使用索引访问，其二使用 get 方法，区别在于前者在越界时将导致 panic，而后者越界后将返回 None，因为 get 方法返回的是 Option\<T\> 类型，因此可以使用 match 来进行进一步的处理：
+
+``` rust
+let v = vec![1, 2, 3, 4, 5];
+
+let third: &i32 = &v[2];
+println!("The third element is {}", third);
+
+match v.get(2) {
+    Some(third) => println!("The third element is {}", third),
+    None => println!("There is no third element."),
+}
+```
+
+有一点需要注意，在引用 vector 元素后，不允许 push，这一点和前面提到的引用和借用的概念相关。当对 Vector 执行 push 操作后，可能会导致因空间不足而重新分配空间，此时之前获得的引用将指向一块被销毁的内存，这一点是不被允许的，有 Cpp 编程经验的人应该不会对此陌生：
+
+``` rust
+let mut v = vec![1, 2, 3, 4, 5];
+
+let first = &v[0];
+
+v.push(6); // error
+
+println!("The first element is: {}", first);
+```
+
+通过 for 循环可以遍历整个 Vector：
+
+``` rust
+let v = vec![100, 32, 57];
+for i in &v {
+    println!("{}", i);
+}
+```
+
+需要注意的是，以上使用的引用皆为不可变引用，因此不能更改 Vector 中的数据值，若希望对 Vector 已存在的数据进行更改，请使用可变引用，此时，使用解引用符号 "*" 对引用指向的数据重新赋值：
+
+``` rust
+let mut v = vec![100, 32, 57];
+for i in &mut v {
+    *i += 50;
+}
+
+let mut idx = &mut v[1];
+*idx = 10000;
+println!("v is {:#?}", v);
+```
+
+这里还有一个小技巧，即：如果希望在 Vector 中存储更多样的数据该怎么办？前文已经强调过，Vector 只能存储相同类型的数据，不过结合 rust 中 enum 类型，可以实现这一需求：
+
+``` rust
+enum SpreadsheetCell {
+    Int(i32),
+    Float(f64),
+    Text(String),
+}
+
+let row = vec![
+    SpreadsheetCell::Int(3),
+    SpreadsheetCell::Text(String::from("blue")),
+    SpreadsheetCell::Float(10.12),
+];
+```
+
 ## String
+
 
 ## Hash Map
 
