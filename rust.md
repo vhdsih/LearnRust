@@ -2125,6 +2125,153 @@ let row = vec![
 
 ## String
 
+rust 语言底层提供了 str 作为 string 的类型表示，与之相关的是对 string 数据的借用，即 &str。而 String 并不是 rust 语言的核心所提供的，其存在于标准库中，其提供了可变的、可动态增长的利用 utf8 编码的 string 类型。rust 标准库中另外提供了其他类型的 String 对象，比如 OsString、OsStr，CString，CStr 等。
+
+类似于 Vec\<T\>，使用 new 来创建一个空的 String：
+
+``` rust
+let mut s = String::new();
+```
+
+使用 to_string() 将 str 数据转换为 String：
+
+``` rust
+let data = "hello";
+let s = data.to_string();
+```
+
+使用 String::from(VALUE) 来定义并初始化一个 String：
+
+``` rust
+let s = String::from("hello");
+```
+
+值得注意的是，String 编码为 utf-8，故可以使用 String 来定义更多样的字符串数据：
+
+``` rust
+let hello = String::from("السلام عليكم");
+let hello = String::from("Dobrý den");
+let hello = String::from("Hello");
+let hello = String::from("שָׁלוֹם");
+let hello = String::from("नमस्ते");
+let hello = String::from("こんにちは");
+let hello = String::from("안녕하세요");
+let hello = String::from("你好");
+let hello = String::from("Olá");
+let hello = String::from("Здравствуйте");
+let hello = String::from("Hola");
+```
+
+使用 push_str 来追加字符串：
+
+``` rust
+let s = String::new();
+s.push_str("new string");
+```
+
+使用 push 方法追加单个字符
+
+``` rust
+let mut s = String::from("hell");
+s.push('o')
+```
+
+String 可以拼接：
+
+``` rust
+let s1 = String::from("hello, ");
+let s2 = String::from("world!");
+let s3 = s1 + &s2; // note s1 has been moved here and can no longer be used
+```
+
+执行拼接后，s1 将被移动到 s3，原有 s1 将无效，'+' 操作符会调用 add 方法，此时，add 方法的可以形象地表示如下（当然，只用来举例，并不确切，在标准库中，add 将使用泛型来定义）：
+
+``` rust
+fn add(self, s: &str) -> String {
+// more code here
+```
+
+在执行 s1 拼接 s2 为 s3 的过程，s1 调用 add，使用参数 s2 的引用，返回一个 String，因此执行拼接，第二个字符串必须为引用类型，两个 String 类型无法执行加操作，编译器可以将 &String 转换为 &str。在执行过程中，add 不接管 s2 的生命周期，故 s2 在执行 add 后继续可用。
+
+拼接时，String 可以直接与 str 字面值拼接，也可以执行多次拼接，但是，除了第一个 String 外，其他需为 &String：
+
+``` rust
+let s1 = String::from("tic");
+let s2 = String::from("tac");
+let s3 = String::from("toe");
+let s = s1 + "-" + &s2 + "-" + &s3;
+```
+
+在其他语言中，可以使用索引来访问字符串中的任意一个字符，然而，在 rust 中试图这样访问将不能通过编译：
+
+``` rust
+// 这是一个错误的例子
+let s = String::from("hello");
+let c = s[0];
+```
+
+Rust 的 String 不提供索引操作。为了解释这个问题，首先需要了解 String 的存储模式。String 基于 Vec\<u8\>，用以存储 utf-8 字符集合。若简单地存储一些 ascii 字符串：
+
+``` rust
+let hello = String::from("halo");
+```
+
+则 hello 占用 4 字节的内存，但是对于非ascii 字符集来说，情况就有些复杂，如：
+
+``` rust
+let hello = "Здравствуйте";
+```
+
+此时，hello 占用的字符并不能明显的看出了，此时，若 rust 对字符串的索引是合法的，那么 &hello[0] 的值是？答案是 '3'，但在utf8编码来讲，其表示为 208，不过 208 并不是用户需要看到的表示结果，故为了避免返回不期望的结果而导致 Bug，rust 在编译期不会允许带有这种特性的代码编译通过。
+
+使用 utf-8 编码字符串，这里有 3 中方法，例如  "नमस्ते"，使用 u8 表示：
+
+``` txt
+[224, 164, 168, 224, 164, 174, 224, 164, 184, 224, 165, 141, 224, 164, 164,
+224, 165, 135]
+```
+
+若使用 unicode：
+
+``` txt
+['न', 'म', 'स', '्', 'त', 'े']
+```
+
+若使用 grapheme clusters：
+
+``` txt
+["न", "म", "स्", "ते"]
+```
+
+使用 &string\[begin..end\] 获得 String 的切片，但是若引用非 ascii 编码的切片会出现问题：
+
+``` rust
+// 错误的代码
+let hello = "Здравствуйте";
+let s = &hello[0..4];
+```
+
+那么如何访问字符串中的字符？使用 chars() 将 String 拆分为 unicode 字符，使用 bytes() 将 String 拆分为 u8
+
+``` rust
+for c in "नमस्ते".chars() {
+    println!("{}", c);
+}
+
+for b in "नमस्ते".bytes() {
+    println!("{}", b);
+}
+```
+
+
+
+
+
+
+
+
+
+
 
 ## Hash Map
 
