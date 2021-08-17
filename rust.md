@@ -2263,16 +2263,107 @@ for b in "नमस्ते".bytes() {
 }
 ```
 
-
-
-
-
-
-
-
-
-
-
 ## Hash Map
+
+使用 HashMap\<K, V\> 存储 key value 的组合，创建一个新的 HashMap，并插入一些值：
+
+``` rust
+use std::collections::HashMap;
+let mut scores = HashMap::new();
+scores.insert(String::from("A"), 1);
+scores.insert(String::from("B"), 2);
+```
+
+由于 HashMap 相对 Vector 并不常用，因此并没有默认引入到命名空间中，需要使用 use 显示声明，此外，也没有提供类似于 vec! 的宏，此处需要注意变量的可变性，使用 insert 方法实现插入。
+
+此外，提供了类似于 python zip 的创建方法：
+
+``` rust
+use std::collections::HashMap;
+let keys = vec![1, 2, 3, 3, 3];
+let vals = vec![4, 5, 6, 7, 8];
+
+let map : HashMap<_, _> = keys.into_iter().zip(vals.into_iter()).collect();
+```
+
+使用迭代器创建一个新的 hashmap，注意需要显示声明其类型，使用 "_" 能够保证 rust 可以自动推断数据类型，显示声明 map 类型的原因是 collect 方法需要明确返回值的类型。
+
+使用 hashmap 时需要注意变量的所有权问题，对已有 key 和 value 变量，当将其 insert 到 hashmap 后，实际执行了移动，因此所有权由 hashmap 管理，原有key、value 将被废弃。当然，也可以使用引用类型作为 key 或 value，但必须保证其有效期长于 hashmap。
+
+``` rust
+use std::collections::HashMap;
+
+let field_name = String::from("Favorite color");
+let field_value = String::from("Blue");
+
+let mut map = HashMap::new();
+map.insert(field_name, field_value);
+// field_name and field_value are invalid at this point, try using them and
+// see what compiler error you get!
+```
+
+使用 get 方法可以获取 hashmap 中 key 对应的值，需注意，其返回 Option\<T\> 类型数据, 因此，若存在 "Blue" 将返回 Some(&10)，否则返回 None。
+
+``` rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+let team_name = String::from("Blue");
+let score = scores.get(&team_name);
+```
+
+可以通过 for 循环来遍历一个 hashmap:
+
+``` rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+for (key, value) in &scores {
+    println!("{}: {}", key, value);
+}
+```
+
+对相同的 key 多次执行 insert 将覆盖其值，若想仅对不存在的 key 执行插入，rust 提供了简单的方法：
+
+``` rust
+use std::collections::HashMap;
+
+let mut scores = HashMap::new();
+scores.insert(String::from("Blue"), 10);
+
+scores.entry(String::from("Yellow")).or_insert(50);
+scores.entry(String::from("Blue")).or_insert(50);
+
+println!("{:?}", scores);
+```
+
+entry 函数将返回 Entry 类型的枚举来表示参数作为 key 是否存在于 hashmap 中，使用 or_insert 方法，若 Entry 表示存在，返回值是对该值的可变的引用，否则将执行插入，由此特性，可以更简便的实现一个单词计数器：
+
+``` rust
+use std::collections::HashMap;
+
+let text = "hello world wonderful world";
+
+let mut map = HashMap::new();
+
+for word in text.split_whitespace() {
+    let count = map.entry(word).or_insert(0);
+    *count += 1;
+}
+
+println!("{:?}", map);
+```
+
+标准库提供的 hashmap 使用 SipHash 作为默认哈希算法，其为多种因素权衡的结果，若需要更高性能的哈希算法，可以自行替换。
+
+# 九、错误处理
 
  Waiting for update later
